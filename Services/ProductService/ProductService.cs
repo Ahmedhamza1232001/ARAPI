@@ -1,6 +1,8 @@
+using arapi.Data;
 using arapi.Dtos.Product;
 using ARAPI.Dtos.Product;
 using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,24 +13,24 @@ namespace ARAPI.Services.ProductService
     public class ProductService : IProductService
     {
 
-        private static List<Product> _products = new List<Product>()
-        {
-            new Product(),
-            new Product {Id =12,Name="Chair"}
-        };
         private readonly IMapper _mapper;
+        private readonly ApplicationDbContext _context;
 
-        public ProductService(IMapper mapper)
+        public ProductService(IMapper mapper , ApplicationDbContext context)
         {
             _mapper = mapper;
+            _context = context;
         }
         public async Task<ServiceResponse<List<GetProductDto>>> AddProduct(AddProductDto newProduct)
         {
             var servicesResponse = new ServiceResponse<List<GetProductDto>>();
             Product product = _mapper.Map<Product>(newProduct);
-            product.Id = _products.Max(p =>p.Id)+1;
-            _products.Add(product);
-            servicesResponse.Data=_products.Select(p=> _mapper.Map<GetProductDto>(p)).ToList();
+            
+            _context.Products.Add(product);
+            await _context.SaveChangesAsync();
+            servicesResponse.Data= await _context.Products
+                .Select(p=> _mapper.Map<GetProductDto>(p))
+                .ToListAsync();
             return servicesResponse;
         }
 
@@ -37,9 +39,10 @@ namespace ARAPI.Services.ProductService
             ServiceResponse<List<GetProductDto>> response = new ServiceResponse<List<GetProductDto>>();
             try
             {
-                Product product = _products.First  (p => p.Id == id);
-                _products.Remove (product);
-                response.Data = _products.Select(p => _mapper.Map<GetProductDto>(p)).ToList();
+                Product product =await _context.Products.FirstAsync  (p => p.Id == id);
+                _context.Products.Remove (product);
+                await _context.SaveChangesAsync();
+                response.Data = _context.Products.Select(p => _mapper.Map<GetProductDto>(p)).ToList();
                 
             }
             catch (Exception ex)
@@ -55,18 +58,21 @@ namespace ARAPI.Services.ProductService
             return response;
         }
 
+
         public async Task<ServiceResponse<List<GetProductDto>>> GetAllProuducts()
         {
-            return new ServiceResponse<List<GetProductDto>> {
-                Data = _products.Select(p => _mapper.Map<GetProductDto>(p)).ToList()
-            };
+            var response = new ServiceResponse<List<GetProductDto>>();
+            var dbProduct = await _context.Products.ToListAsync();
+            response.Data = dbProduct.Select(p => _mapper.Map<GetProductDto>(p)).ToList();
+            return response;
+            
         }
 
         public async Task<ServiceResponse<GetProductDto>> GetProductById(int id)
         {
             var servicesResponse = new ServiceResponse<GetProductDto>();
-            var product = _products.FirstOrDefault(p=>p.Id ==id);
-            servicesResponse.Data = _mapper.Map<GetProductDto>(product);
+            var dbProduct = await _context.Products.FirstOrDefaultAsync(p=>p.Id ==id);
+            servicesResponse.Data = _mapper.Map<GetProductDto>(dbProduct);
             return servicesResponse;
         }
 
@@ -75,9 +81,10 @@ namespace ARAPI.Services.ProductService
             ServiceResponse<GetProductDto> response = new ServiceResponse<GetProductDto>();
             try
             {
-                Product product = _products.FirstOrDefault(p => p.Id == updatedProduct.Id);
+                var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == updatedProduct.Id);
                 _mapper.Map(updatedProduct, product);
                 
+                await _context.SaveChangesAsync();
                 response.Data = _mapper.Map<GetProductDto>(product);
             }
            catch(Exception ex)
