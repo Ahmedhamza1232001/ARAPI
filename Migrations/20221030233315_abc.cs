@@ -4,7 +4,7 @@
 
 namespace arapi.Migrations
 {
-    public partial class IntialCreate : Migration
+    public partial class abc : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {

@@ -11,8 +11,8 @@ using arapi.Data;
 namespace arapi.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20221029003624_IntialCreate")]
-    partial class IntialCreate
+    [Migration("20221030233315_abc")]
+    partial class abc
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
